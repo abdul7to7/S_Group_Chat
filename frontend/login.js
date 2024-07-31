@@ -15,5 +15,6 @@ document.getElementById("loginForm").addEventListener("submit", async (e) => {
     }),
   });
   data = await data.json();
-  console.log(data);
+  localStorage.setItem("token", data.token);
+  window.location = "./chatapp.html";
 });
