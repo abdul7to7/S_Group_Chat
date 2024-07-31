@@ -1,5 +1,6 @@
 const User = require("../models/userModel");
 const bcrypt = require("bcrypt");
+const generateToken = require("../routes/middlewres/authGenerateToken");
 
 exports.signup = async (req, res, next) => {
   try {
@@ -50,9 +51,11 @@ exports.login = async (req, res, next) => {
     }
     const isMatch = await bcrypt.compare(req.body.password, user.password);
     if (isMatch) {
+      const { password, ...userDetails } = user;
+      const token = generateToken(userDetails);
       return res
         .status(201)
-        .json({ success: true, message: "login successfully" });
+        .json({ success: true, message: "login successfully", token: token });
     } else {
       return res
         .status(500)
