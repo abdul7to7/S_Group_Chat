@@ -4,7 +4,7 @@ document.getElementById("loginForm").addEventListener("submit", async (e) => {
   e.preventDefault();
   const mail = document.getElementById("loginMail").value;
   const password = document.getElementById("loginPassword").value;
-  let data = await fetch(`${server}/user/login`, {
+  let data = await fetch(`${server}/auth/login`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -15,6 +15,8 @@ document.getElementById("loginForm").addEventListener("submit", async (e) => {
     }),
   });
   data = await data.json();
+  console.log(data);
+  alert("ok");
   localStorage.setItem("token", data.token);
-  window.location = "./chatapp.html";
+  window.location = "./homePage.html";
 });

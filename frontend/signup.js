@@ -5,7 +5,7 @@ document.getElementById("signupForm").addEventListener("submit", async (e) => {
   const mail = document.getElementById("signupMail").value;
   const phoneno = document.getElementById("signupPhoneno").value;
   const password = document.getElementById("signupPassword").value;
-  await fetch(`${server}/user/signup`, {
+  let data = await fetch(`${server}/auth/signup`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -13,8 +13,13 @@ document.getElementById("signupForm").addEventListener("submit", async (e) => {
     body: JSON.stringify({
       username: username,
       mail: mail,
-      phone: phoneno,
+      phoneno: phoneno,
       password: password,
     }),
   });
+  data = await data.json();
+  localStorage.setItem("token", data.token);
+  console.log(data);
+
+  window.location = "./homePage.html";
 });

@@ -19,5 +19,9 @@ const User = sequelize.define("user", {
     type: Sequelize.STRING,
     nullAllowed: false,
   },
+  admin: {
+    type: Sequelize.BOOLEAN,
+    default: false,
+  },
 });
 module.exports = User;

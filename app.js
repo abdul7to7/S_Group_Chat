@@ -14,14 +14,39 @@ app.use(
   })
 );
 
-const userRoutes = require("./routes/userRoutes");
 const sequelize = require("./util/db");
+const User = require("./models/userModel");
+const Group = require("./models/groupModel");
+const GroupMembers = require("./models/groupMembersModel");
+const GroupMessage = require("./models/groupMessageModel");
+const Message = require("./models/messageModel");
 
+const authRoutes = require("./routes/authRoutes");
+const groupRoutes = require("./routes/groupRoutes");
+const userRoutes = require("./routes/userRoutes");
+const msgRoutes = require("./routes/msgRoutes");
+
+const authVerifyToken = require("./middlewres/authVerifyToken");
+
+app.use("/auth", authRoutes);
 app.use("/user", userRoutes);
+app.use("/dm", authVerifyToken, msgRoutes);
+app.use("/gc", authVerifyToken, groupRoutes);
 
 // app.listen(process.env.PORT || 3000, () => {
 //   console.log(`server is running on port-->${process.env.PORT || 3000}`);
 // });
+User.hasMany(Message);
+Message.belongsTo(User);
+
+User.belongsToMany(Group, { through: GroupMembers });
+Group.belongsToMany(User, { through: GroupMembers });
+
+Group.hasMany(GroupMessage);
+GroupMessage.belongsTo(Group);
+
+User.hasMany(GroupMessage);
+GroupMessage.belongsTo(User);
 
 sequelize
   // .sync({ force: true })
