@@ -1,15 +1,13 @@
 const Message = require("../models/messageModel");
-const { Op } = require("sequelize");
 const User = require("../models/userModel");
 
 exports.getChat = async (req, res, next) => {
-  let recvId = req.headers.receiverid;
+  const userId1 = req.user.id;
+  const userId2 = req.headers.receiverid;
+  const roomId = [userId1, userId2].sort().join("_");
   const msgs = await Message.findAll({
     where: {
-      [Op.or]: [
-        { userId: req.user.id, receiverId: recvId },
-        { userId: recvId, receiverId: req.user.id },
-      ],
+      roomId: roomId,
     },
     include: {
       model: User,
@@ -21,16 +19,14 @@ exports.getChat = async (req, res, next) => {
   //   console.log(typeof req.user.id);
 };
 
-exports.postChat = async (req, res, next) => {
+exports.postChat = async ({ roomId, userId, receiverid, content }) => {
   try {
-    console.log(req.body);
-    console.log(req.headers);
-    await Message.create({
-      message: req.body.message,
-      userId: req.user.id,
-      receiverId: req.headers.receiverid,
+    return await Message.create({
+      message: content,
+      userId,
+      receiverId: receiverid,
+      roomId,
     });
-    return res.json({ success: true });
   } catch (e) {
     console.log(e);
   }

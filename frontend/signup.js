@@ -18,8 +18,8 @@ document.getElementById("signupForm").addEventListener("submit", async (e) => {
     }),
   });
   data = await data.json();
+  localStorage.setItem("username", data.username);
   localStorage.setItem("token", data.token);
-  console.log(data);
-
+  localStorage.setItem("groupId", 1);
   window.location = "./homePage.html";
 });

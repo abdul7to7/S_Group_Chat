@@ -20,12 +20,15 @@ exports.signup = async (req, res, next) => {
       phoneno: req.body.phoneno,
       password: hashed,
     });
-    console.log(user.dataValues);
+    const { password, updatedAt, createdAt, ...userDetails } = user.dataValues;
     if (user) {
-      let token = await generateToken(user.dataValues);
-      return res
-        .status(201)
-        .json({ success: true, message: "created successfully", token: token });
+      let token = await generateToken(userDetails);
+      return res.status(201).json({
+        success: true,
+        message: "created successfully",
+        token: token,
+        username: userDetails.username,
+      });
     } else {
       return res
         .status(500)
@@ -53,11 +56,15 @@ exports.login = async (req, res, next) => {
     }
     const isMatch = await bcrypt.compare(req.body.password, user.password);
     if (isMatch) {
-      const { password, ...userDetails } = user.dataValues;
+      const { password, updatedAt, createdAt, ...userDetails } =
+        user.dataValues;
       const token = await generateToken(userDetails);
-      return res
-        .status(201)
-        .json({ success: true, message: "login successfully", token: token });
+      return res.status(201).json({
+        success: true,
+        message: "login successfully",
+        token: token,
+        username: userDetails.username,
+      });
     } else {
       return res
         .status(500)

@@ -15,8 +15,8 @@ document.getElementById("loginForm").addEventListener("submit", async (e) => {
     }),
   });
   data = await data.json();
-  console.log(data);
-  alert("ok");
+  localStorage.setItem("username", data.username);
   localStorage.setItem("token", data.token);
+  localStorage.setItem("groupId", 1);
   window.location = "./homePage.html";
 });

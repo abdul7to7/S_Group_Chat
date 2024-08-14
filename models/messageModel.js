@@ -6,6 +6,10 @@ const Message = sequelize.define("message", {
     type: Sequelize.STRING,
     nullAllowed: false,
   },
+  roomId: {
+    type: Sequelize.STRING,
+    nullAllowed: false,
+  },
   message: {
     type: Sequelize.STRING,
   },

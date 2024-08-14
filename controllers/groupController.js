@@ -1,7 +1,7 @@
 const GroupMessage = require("../models/groupMessageModel");
 const User = require("../models/userModel");
 
-exports.getGroupMsgGlobal = async (req, res) => {
+exports.getPrevGroupMessage = async (req, res) => {
   let msgs = await GroupMessage.findAll({
     where: { groupId: 1 },
     include: [
@@ -17,12 +17,10 @@ exports.getGroupMsgGlobal = async (req, res) => {
   res.json({ msgs: msgs });
 };
 
-exports.postGroupMsgGlobal = async (req, res) => {
-  console.log("here", req.body);
-  console.log("here", req.user);
-  await GroupMessage.create({
-    groupId: 1,
-    userId: req.user.id,
-    message: req.body.message,
+exports.postGroupMessage = async ({ groupId, userId, content }) => {
+  return await GroupMessage.create({
+    groupId: groupId,
+    userId: userId,
+    message: content,
   });
 };
