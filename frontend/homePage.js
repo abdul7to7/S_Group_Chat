@@ -7,9 +7,10 @@ window.addEventListener("DOMContentLoaded", async () => {
   socket.emit("joinGroupChat", { token, groupId });
   const data = await getGroupChat();
   addPrevChatToUI(data.msgs);
-  const users = await getAllUser();
+  const users = await getAllUsers();
   addAllUserToUI(users.users);
-  console.log(data, users);
+  const groups = await getAllGroups();
+  addAllGroupToUI(groups);
 });
 
 socket.on("newGroupMessage", ({ message, sender }) => {
@@ -34,6 +35,14 @@ document.getElementById("all_users").addEventListener("click", (e) => {
     localStorage.setItem("receiverid", e.target.getAttribute("userid"));
   }
   window.location.href = "./chatWithUser.html";
+});
+
+document.getElementById("all_groups").addEventListener("click", (e) => {
+  e.preventDefault();
+  if (e.target.classList.contains("active_group")) {
+    localStorage.setItem("groupId", e.target.getAttribute("groupid"));
+  }
+  window.location.href = "./groupChat.html";
 });
 
 function addPrevChatToUI(messages) {
@@ -68,8 +77,35 @@ function addAllUserToUI(users) {
   });
 }
 
-async function getAllUser() {
-  let data = await fetch(`${server}/user/allusers`);
+function addAllGroupToUI(groups) {
+  console.log(groups);
+  const allGroupList = document.getElementById("all_groups");
+  groups.groups.map((group) => {
+    const textNode = document.createTextNode(group.groupName);
+    const li = document.createElement("li");
+    li.setAttribute("groupId", group.id);
+    li.classList.add("active_group");
+    li.appendChild(textNode);
+    allGroupList.appendChild(li);
+  });
+}
+
+async function getAllUsers() {
+  let data = await fetch(`${server}/user/allusers`, {
+    headers: {
+      token: localStorage.getItem("token"),
+    },
+  });
+  data = data.json();
+  return data;
+}
+
+async function getAllGroups() {
+  let data = await fetch(`${server}/gc/all`, {
+    headers: {
+      token: localStorage.getItem("token"),
+    },
+  });
   data = data.json();
   return data;
 }
@@ -79,6 +115,7 @@ async function getGroupChat() {
     let data = await fetch(`${server}/gc/chat`, {
       headers: {
         token: localStorage.getItem("token"),
+        groupId: 1,
       },
     });
     data = await data.json();

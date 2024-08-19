@@ -3,7 +3,10 @@
 //   postGroupMsgGlobal,
 // } = require("../controllers/groupController");
 
-const { getPrevGroupMessage } = require("../controllers/groupController");
+const {
+  getPrevGroupMessage,
+  getAllGroup,
+} = require("../controllers/groupController");
 
 const router = require("express").Router();
 
@@ -11,5 +14,6 @@ const router = require("express").Router();
 // router.post("/global", postGroupMsgGlobal);
 
 router.get("/chat", getPrevGroupMessage);
+router.get("/all", getAllGroup);
 
 module.exports = router;

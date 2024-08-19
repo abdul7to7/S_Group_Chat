@@ -1,9 +1,16 @@
 const GroupMessage = require("../models/groupMessageModel");
 const User = require("../models/userModel");
+const Group = require("../models/groupModel");
+
+exports.getAllGroup = async (req, res, next) => {
+  let groups = await Group.findAll();
+  return res.json({ groups });
+};
 
 exports.getPrevGroupMessage = async (req, res) => {
+  console.log(req.headers);
   let msgs = await GroupMessage.findAll({
-    where: { groupId: 1 },
+    where: { groupId: req.headers.groupid },
     include: [
       {
         model: User,
