@@ -3,9 +3,13 @@ const sequelize = require("../util/db");
 
 const GroupMembers = sequelize.define("group_member", {
   id: {
-    type: Sequelize.STRING,
-    nullAllowed: false,
+    type: Sequelize.INTEGER,
     primaryKey: true,
+    autoIncrement: true,
+  },
+  isAdmin: {
+    type: Sequelize.BOOLEAN,
+    default: false,
   },
 });
 

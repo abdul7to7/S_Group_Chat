@@ -34,16 +34,19 @@ const authRoutes = require("./routes/authRoutes");
 const groupRoutes = require("./routes/groupRoutes");
 const userRoutes = require("./routes/userRoutes");
 const msgRoutes = require("./routes/msgRoutes");
+const friendRoutes = require("./routes/friendRoutes");
 
 const authVerifyToken = require("./middlewres/authVerifyToken");
 const verifyUserToken = require("./middlewres/verifyUserToken");
 const { postChat } = require("./controllers/messageController");
 const { postGroupMessage } = require("./controllers/groupController");
+const Friend = require("./models/friendModel");
 
 app.use("/auth", authRoutes);
-app.use("/user", userRoutes);
+app.use("/user", authVerifyToken, userRoutes);
 app.use("/dm", authVerifyToken, msgRoutes);
 app.use("/gc", authVerifyToken, groupRoutes);
+app.use("/friend", authVerifyToken, friendRoutes);
 
 // app.listen(process.env.PORT || 3000, () => {
 //   console.log(`server is running on port-->${process.env.PORT || 3000}`);
@@ -60,11 +63,22 @@ GroupMessage.belongsTo(Group);
 User.hasMany(GroupMessage);
 GroupMessage.belongsTo(User);
 
+// Friend model associations
+// User.belongsToMany(User, {
+//   through: Friend,
+//   as: "Friends", // Alias for the association
+//   foreignKey: "userId",
+//   otherKey: "friendId",
+// });
+User.hasMany(Friend, { foreignKey: "userId", as: "userFriends" });
+Friend.belongsTo(User, { foreignKey: "userId", as: "userDetails" });
+Friend.belongsTo(User, { foreignKey: "friendId", as: "friendDetails" });
+
 io.on("connection", (socket) => {
   console.log("A new user has connected", socket.id);
 
   // Join a 1-to-1 chat room
-  socket.on("joinPrivateChat", async ({ token, receiverid }) => {
+  socket.on("joinPrivateChat", async ({ token, receiverId }) => {
     const user = await verifyUserToken(token);
 
     if (!user) {
@@ -72,29 +86,29 @@ io.on("connection", (socket) => {
       return;
     }
     const userId1 = user.id;
-    const userId2 = receiverid;
+    const userId2 = receiverId;
     const roomId = [userId1, userId2].sort().join("_"); // Ensure consistent room ID generation
     socket.join(roomId);
     console.log(`User ${socket.id} joined private chat room ${roomId}`);
   });
 
   // Handle sending a message in a 1-to-1 chat
-  socket.on("sendPrivateMessage", async ({ token, receiverid, content }) => {
+  socket.on("sendPrivateMessage", async ({ token, receiverId, content }) => {
     const user = await verifyUserToken(token);
     if (!user) {
       console.log("something went wrong");
       return;
     }
     const userId1 = user.id;
-    const userId2 = receiverid;
+    const userId2 = receiverId;
     const roomId = [userId1, userId2].sort().join("_");
 
     console.log(roomId, content);
     try {
-      await postChat({ roomId, userId: user.id, receiverid, content });
+      await postChat({ roomId, userId: user.id, receiverId, content });
       socket
         .to(roomId)
-        .emit("newPrivateMessage", { content, sender: user.username });
+        .emit("newPrivateMessage", { message: content, sender: user.id });
     } catch (error) {
       console.error("Error sending private message:", error);
       socket.emit("error", { message: "Failed to send message." });
