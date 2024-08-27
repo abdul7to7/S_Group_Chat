@@ -268,6 +268,56 @@ document
     window.location.reload(true);
   });
 
+document.getElementById("all_users").addEventListener("click", async (e) => {
+  e.preventDefault();
+  const userId = e.target.getAttribute("userid");
+  const token = localStorage.getItem("token");
+  if (e.target.classList.contains("remove_btn")) {
+    console.log("remove_btn ", userId);
+    await removeFriend(token, userId);
+  } else if (e.target.classList.contains("add_friend_btn")) {
+    await addFriend(token, userId);
+    console.log("add_friend_btn", userId);
+  } else if (e.target.classList.contains("accept_btn")) {
+    acceptFriend(token, userId);
+    console.log("accept_btn", userId);
+  }
+});
+
+async function removeFriend(token, userId) {
+  try {
+    fetch(`${server}/friend/unfriend/${userId}`, {
+      headers: {
+        token: token,
+      },
+    });
+  } catch (e) {
+    console.log(e);
+  }
+}
+async function addFriend(token, userId) {
+  try {
+    fetch(`${server}/friend/send_request/${userId}`, {
+      headers: {
+        token: token,
+      },
+    });
+  } catch (e) {
+    console.log(e);
+  }
+}
+async function acceptFriend(token, userId) {
+  try {
+    fetch(`${server}/friend/accept_request/${userId}`, {
+      headers: {
+        token: token,
+      },
+    });
+  } catch (e) {
+    console.log(e);
+  }
+}
+
 // document
 //   .getElementById("delete_friend_section_btn")
 //   .addEventListener("click", (e) => {
@@ -404,6 +454,32 @@ function addAllUsersToUI(allUsers) {
     li.classList.add("all_users_list_item");
     li.setAttribute("userid", user.id);
     li.appendChild(textNode);
+    // all_users_list.appendChild(li);
+    if (user.status == "accepted") {
+      const textNode = document.createTextNode("remove");
+      const remove_btn = document.createElement("button");
+      remove_btn.appendChild(textNode);
+      remove_btn.setAttribute("userId", user.id);
+      remove_btn.classList.add("remove_btn");
+      li.appendChild(remove_btn);
+    } else if (user.status == "pending") {
+      const accept_btn = document.createElement("button");
+      const textNode = document.createTextNode("accept");
+      accept_btn.appendChild(textNode);
+      accept_btn.setAttribute("userId", user.id);
+      accept_btn.classList.add("accept_btn");
+      li.appendChild(accept_btn);
+    } else if (user.status == "requested") {
+      const textNode = document.createTextNode("    requested");
+      li.appendChild(textNode);
+    } else {
+      const add_friend_btn = document.createElement("button");
+      const textNode = document.createTextNode("add friend");
+      add_friend_btn.appendChild(textNode);
+      add_friend_btn.setAttribute("userId", user.id);
+      add_friend_btn.classList.add("add_friend_btn");
+      li.appendChild(add_friend_btn);
+    }
     all_users_list.appendChild(li);
   });
 }

@@ -55,7 +55,7 @@ exports.login = async (req, res, next) => {
     if (!hashed) {
       return res.status(500).json(err);
     }
-    const user = await User.findOne({ where: { mail: req.body.mail } });
+    const user = await User.findOne({ where: { username: req.body.username } });
     if (!user) {
       return res
         .status(403)
@@ -77,7 +77,7 @@ exports.login = async (req, res, next) => {
     } else {
       return res
         .status(500)
-        .json({ success: false, message: "something went wrong" });
+        .json({ success: false, message: "Credentials are not correct" });
     }
   } catch (e) {
     return res

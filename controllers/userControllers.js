@@ -20,11 +20,12 @@ exports.getAllUsersWithFriendStatus = async (req, res, next) => {
       ],
     });
     // return res.json({ users });
+    console.log("users---------------------------", users);
     const result = users
       .map((user) => {
         if (user.id == currentUserId) return;
         let isFriend = false;
-        let status = "pending";
+        let status = "available";
         user.userFriends.map((friend) => {
           if (friend.friendId == currentUserId) {
             status = friend.status;
@@ -38,14 +39,15 @@ exports.getAllUsersWithFriendStatus = async (req, res, next) => {
         console.log("length-------", user.userFriends.length, user.userFriends);
         for (let i = 0; i < user.userFriends.length; i++) {
           console.log("here-------->count", i, user.userFriends[i]);
-          if (
-            user.userFriends[i].userId == currentUserId ||
-            user.userFriends[i].friendId == currentUserId
-          ) {
+          if (user.userFriends[i].friendId == currentUserId) {
             status = user.userFriends[i].status;
             console.log(user.userFriends[i].status, "----", status);
             if (status == "accepted") {
               isFriend = true;
+            } else if (status == "pending") {
+              status = "requested";
+            } else if (status == "requested") {
+              status = "pending";
             }
             break;
           }

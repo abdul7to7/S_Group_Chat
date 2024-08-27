@@ -31,8 +31,8 @@ const Friend = sequelize.define(
       defaultValue: false,
     },
     status: {
-      type: Sequelize.ENUM("pending", "accepted", "blocked", "removed"),
-      defaultValue: "pending",
+      type: Sequelize.ENUM("available", "requested", "pending", "accepted"),
+      defaultValue: "available",
     },
     requestedBy: {
       type: Sequelize.STRING,

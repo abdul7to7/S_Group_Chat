@@ -3,20 +3,41 @@ const Sequelize = require("sequelize");
 const User = require("../models/userModel");
 const { Op } = require("sequelize");
 
-exports.postSendRequest = async (req, res, next) => {
+exports.getSendRequest = async (req, res, next) => {
   try {
-    console.log("requesting to be a friend");
-    console.log(req.body.friendId);
+    const request = await Friend.findOne({
+      where: { userId: req.user.id, friendId: req.params.friendId },
+    });
+    if (request) {
+      if (request.status == "pending") {
+        return res.json({
+          success: false,
+          message: "already sent request",
+        });
+      } else if (request.status == "accepted") {
+        return res.json({
+          success: false,
+          message: "already friends",
+        });
+      } else if (request.status == "requested") {
+        return res.json({
+          success: false,
+          message: "need to accept",
+        });
+      }
+    }
     await Friend.bulkCreate([
       {
         userId: req.user.id,
-        friendId: req.body.friendId,
+        friendId: req.params.friendId,
+        status: "requested",
         requestedBy: req.user.id,
       },
       {
-        userId: req.body.friendId,
+        userId: req.params.friendId,
         friendId: req.user.id,
         requestedBy: req.user.id,
+        status: "pending",
       },
     ]);
     return res.json({ success: true });
@@ -25,8 +46,20 @@ exports.postSendRequest = async (req, res, next) => {
   }
 };
 
-exports.postAcceptRequest = async (req, res, next) => {
+exports.getAcceptRequest = async (req, res, next) => {
   try {
+    const request = await Friend.findOne({
+      where: {
+        userId: req.user.id,
+        friendId: req.params.friendId,
+      },
+    });
+    if (request.status != "pending") {
+      return res.json({
+        success: false,
+        message: "not requested to be friend",
+      });
+    }
     await Friend.update(
       {
         status: "accepted",
@@ -36,14 +69,14 @@ exports.postAcceptRequest = async (req, res, next) => {
         where: {
           [Op.or]: [
             {
-              userId: req.body.sentRequestId,
+              userId: req.params.friendId,
               friendId: req.user.id,
-              requestedBy: req.body.sentRequestId,
+              requestedBy: req.params.friendId,
             },
             {
               userId: req.user.id,
-              friendId: req.body.sentRequestId,
-              requestedBy: req.body.sentRequestId,
+              friendId: req.params.friendId,
+              requestedBy: req.params.friendId,
             },
           ],
         },
@@ -80,7 +113,7 @@ exports.getAllFriends = async (req, res, next) => {
 
 exports.getUnfriend = async (req, res, next) => {
   try {
-    await Friend.delete({
+    const friend = await Friend.destroy({
       where: {
         [Sequelize.Op.or]: [
           { userId: req.user.id, friendId: req.params.friendId },
@@ -89,6 +122,9 @@ exports.getUnfriend = async (req, res, next) => {
         isFriends: true,
       },
     });
+    if (!friend) {
+      return res.json({ success: false, message: "something went wrong" });
+    }
     return res.json({ success: true });
   } catch (e) {
     return res.json({ success: false, message: `something went wrong:${e}` });

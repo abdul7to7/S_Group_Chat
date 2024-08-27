@@ -5,12 +5,11 @@ const GroupMembers = require("../models/groupMembersModel");
 
 exports.getAllGroup = async (req, res, next) => {
   try {
-    // Retrieve the user by their ID, including associated groups
     const user = await User.findByPk(req.user.id, {
       include: {
         model: Group,
-        attributes: ["id", "groupName"], // Specify which group attributes to include
-        through: { attributes: ["isAdmin"] }, // Exclude GroupMembers attributes from the result
+        attributes: ["id", "groupName"],
+        through: { attributes: ["isAdmin"] },
       },
     });
 
@@ -18,10 +17,11 @@ exports.getAllGroup = async (req, res, next) => {
       return res.status(404).json({ message: "User not found" });
     }
 
-    // Extract the groups from the user
+    if (!user.groups) {
+      return res.json({ success: false, message: "something went wrong" });
+    }
     const groups = user.groups; // Sequelize includes associated groups in the Groups property
-
-    return res.json({ groups });
+    return res.json({ success: true, groups });
   } catch (error) {
     console.error("Error retrieving groups by user:", error);
     return res.status(500).json({ error: "Internal Server Error" });
@@ -76,7 +76,9 @@ exports.postCreateGroup = async (req, res, next) => {
     });
     return res.json({ success: true });
   } catch (e) {
-    return res.status(500).json({ error: `${e} Internal Server Error` });
+    return res
+      .status(500)
+      .json({ success: false, message: `${e} Internal Server Error` });
   }
 };
 
@@ -89,7 +91,9 @@ exports.getDeleteGroup = async (req, res, next) => {
     });
     return res.json({ success: true });
   } catch (e) {
-    return res.status(500).json({ error: `${e} Internal Server Error` });
+    return res
+      .status(500)
+      .json({ success: false, message: `${e} Internal Server Error` });
   }
 };
 
@@ -102,7 +106,9 @@ exports.postAddUserToGroup = async (req, res, next) => {
     });
     return res.json({ success: true });
   } catch (e) {
-    return res.status(500).json({ error: `${e} Internal Server Error` });
+    return res
+      .status(500)
+      .json({ success: false, message: `${e} Internal Server Error` });
   }
 };
 
@@ -121,9 +127,11 @@ exports.getAllMembersOfAGroup = async (req, res, next) => {
       },
     });
     console.log(users);
-    return res.json({ users: users.users });
+    return res.json({ success: true, users: users.users });
   } catch (e) {
-    return res.status(500).json({ error: `${e} Internal Server Error` });
+    return res
+      .status(500)
+      .json({ success: false, message: `${e} Internal Server Error` });
   }
 };
 
@@ -137,6 +145,8 @@ exports.removeMemberFromGroup = async (req, res, next) => {
     });
     return res.json({ success: true });
   } catch (e) {
-    return res.status(500).json({ error: `${e} Internal Server Error` });
+    return res
+      .status(500)
+      .json({ success: true, message: `${e} Internal Server Error` });
   }
 };
