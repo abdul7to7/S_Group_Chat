@@ -1,4 +1,4 @@
-const server = `http://localhost:3000`;
+const server = `https://s-group-chat-backend.onrender.com`;
 const socket = io(server);
 
 let userFriends;

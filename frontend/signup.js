@@ -1,4 +1,4 @@
-const server = `http://localhost:3000`;
+const server = `https://s-group-chat-backend.onrender.com`;
 document.getElementById("signupForm").addEventListener("submit", async (e) => {
   e.preventDefault();
   const username = document.getElementById("signupUsername").value;
