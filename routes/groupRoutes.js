@@ -11,6 +11,7 @@ const {
   postAddUserToGroup,
   getAllMembersOfAGroup,
   removeMemberFromGroup,
+  leaveGroup,
 } = require("../controllers/groupController");
 
 const router = require("express").Router();
@@ -25,5 +26,6 @@ router.get("/delete_group/:groupId", getDeleteGroup);
 router.post("/add_to_group", postAddUserToGroup);
 router.get("/get_members/:groupId", getAllMembersOfAGroup);
 router.get("/remove_member/:groupId/:userId", removeMemberFromGroup);
+router.get("/leave/:groupId", leaveGroup);
 
 module.exports = router;

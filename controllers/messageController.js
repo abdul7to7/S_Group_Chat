@@ -1,5 +1,7 @@
+const File = require("../models/fileModel");
 const Message = require("../models/messageModel");
 const User = require("../models/userModel");
+const upload = require("../middlewres/filesOperation");
 
 exports.getChat = async (req, res, next) => {
   try {
@@ -10,13 +12,39 @@ exports.getChat = async (req, res, next) => {
       where: {
         roomId: roomId,
       },
-      include: {
-        model: User,
-        attributes: ["username"],
-      },
+      include: [
+        {
+          model: File,
+          as: "associatedMessage",
+          attributes: ["key", "fileName", "fileUrl"],
+          required: false,
+        },
+        {
+          model: User,
+          attributes: ["username"],
+        },
+      ],
       order: [["createdAt", "DESC"]],
       limit: 10,
     });
+    for (const msg of msgs) {
+      if (msg.associatedMessage) {
+        try {
+          const fileUrl = await upload.generatePresignedUrl(
+            msg.associatedMessage.key
+          );
+          msg.associatedMessage.dataValues = {
+            name: msg.associatedMessage.fileName,
+            url: fileUrl,
+          };
+        } catch (error) {
+          console.error(
+            `Error generating URL for file ${msg.associatedMessage.fileName}:`,
+            error
+          );
+        }
+      }
+    }
     return res.json({ msgs: msgs.reverse() });
   } catch (e) {
     return res.json({ success: false, message: `something went wrong:${e}` });

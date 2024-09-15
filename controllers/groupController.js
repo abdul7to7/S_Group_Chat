@@ -2,6 +2,8 @@ const GroupMessage = require("../models/groupMessageModel");
 const User = require("../models/userModel");
 const Group = require("../models/groupModel");
 const GroupMembers = require("../models/groupMembersModel");
+const upload = require("../middlewres/filesOperation");
+const File = require("../models/fileModel");
 
 exports.getAllGroup = async (req, res, next) => {
   try {
@@ -37,6 +39,12 @@ exports.getPrevGroupMessage = async (req, res) => {
           model: User,
           attributes: ["id", "username"], // Specify attributes to include from User model
         },
+        {
+          model: File,
+          as: "associatedGroupMessage",
+          attributes: ["key", "fileName", "fileUrl"],
+          required: false,
+        },
       ],
       attributes: {
         exclude: ["createdAt", "updatedAt"],
@@ -44,6 +52,25 @@ exports.getPrevGroupMessage = async (req, res) => {
       order: [["createdAt", "DESC"]],
       limit: 10,
     });
+    for (const msg of msgs) {
+      if (msg.associatedGroupMessage) {
+        try {
+          const fileUrl = await upload.generatePresignedUrl(
+            msg.associatedGroupMessage.key
+          );
+          msg.associatedGroupMessage.dataValues = {
+            name: msg.associatedGroupMessage.fileName,
+            url: fileUrl,
+          };
+        } catch (error) {
+          console.error(
+            `Error generating URL for file ${msg.associatedGroupMessage.fileName}:`,
+            error
+          );
+        }
+      }
+    }
+
     return res.json({ msgs: msgs.reverse() });
   } catch (e) {
     return res.status(500).json({ error: `${e} Internal Server Error` });
@@ -58,6 +85,7 @@ exports.postGroupMessage = async ({ groupId, userId, content }) => {
       message: content,
     });
   } catch (e) {
+    return { sucess: false, error: e };
     return res.status(500).json({ error: `${e} Internal Server Error` });
   }
 };
@@ -140,6 +168,22 @@ exports.removeMemberFromGroup = async (req, res, next) => {
     await GroupMembers.destroy({
       where: {
         userId: req.params.userId,
+        groupId: req.params.groupId,
+      },
+    });
+    return res.json({ success: true });
+  } catch (e) {
+    return res
+      .status(500)
+      .json({ success: true, message: `${e} Internal Server Error` });
+  }
+};
+
+exports.leaveGroup = async (req, res, next) => {
+  try {
+    await GroupMembers.destroy({
+      where: {
+        userId: req.user.id,
         groupId: req.params.groupId,
       },
     });

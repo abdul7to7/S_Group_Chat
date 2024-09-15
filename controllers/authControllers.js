@@ -81,7 +81,7 @@ exports.login = async (req, res, next) => {
     }
   } catch (e) {
     return res
-      .status(500)
+      .status(401)
       .json({ success: false, message: `something went wrong: ${e}` });
   }
 };

@@ -61,10 +61,12 @@ exports.getAllUsersWithFriendStatus = async (req, res, next) => {
       })
       .filter((user) => user !== undefined);
     console.log("----------getting all users with friend status", result);
-    return res.json({ users: result });
+    return res.json({ success: true, users: result });
   } catch (error) {
     console.error("Error retrieving users with friend status:", error);
-    return res.status(500).json({ error: "Internal Server Error" });
+    return res
+      .status(500)
+      .json({ success: false, error: `Internal Server Error:${error}` });
   }
 };
 

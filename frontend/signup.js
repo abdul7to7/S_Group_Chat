@@ -1,4 +1,4 @@
-const server = `https://s-group-chat-backend.onrender.com`;
+const server = `http://localhost:3000`;
 document.getElementById("signupForm").addEventListener("submit", async (e) => {
   e.preventDefault();
   const username = document.getElementById("signupUsername").value;
@@ -18,6 +18,10 @@ document.getElementById("signupForm").addEventListener("submit", async (e) => {
     }),
   });
   data = await data.json();
+  if (!(data && data.success)) {
+    console.log(data?.message);
+    return;
+  }
   localStorage.setItem("userId", data.userId);
   localStorage.setItem("username", data.username);
   localStorage.setItem("token", data.token);

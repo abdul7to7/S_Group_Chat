@@ -41,6 +41,9 @@ const verifyUserToken = require("./middlewres/verifyUserToken");
 const { postChat } = require("./controllers/messageController");
 const { postGroupMessage } = require("./controllers/groupController");
 const Friend = require("./models/friendModel");
+const File = require("./models/fileModel");
+const fileOperaions = require("./middlewres/filesOperation");
+const scheduler = require("./util/scheduler");
 
 app.use("/auth", authRoutes);
 app.use("/user", authVerifyToken, userRoutes);
@@ -51,13 +54,17 @@ app.use("/friend", authVerifyToken, friendRoutes);
 // app.listen(process.env.PORT || 3000, () => {
 //   console.log(`server is running on port-->${process.env.PORT || 3000}`);
 // });
-User.hasMany(Message);
+User.hasMany(Message, {
+  onDelete: "CASCADE",
+});
 Message.belongsTo(User);
 
 User.belongsToMany(Group, { through: GroupMembers });
 Group.belongsToMany(User, { through: GroupMembers });
 
-Group.hasMany(GroupMessage);
+Group.hasMany(GroupMessage, {
+  onDelete: "CASCADE",
+});
 GroupMessage.belongsTo(Group);
 
 User.hasMany(GroupMessage);
@@ -73,6 +80,26 @@ GroupMessage.belongsTo(User);
 User.hasMany(Friend, { foreignKey: "userId", as: "userFriends" });
 Friend.belongsTo(User, { foreignKey: "userId", as: "userDetails" });
 Friend.belongsTo(User, { foreignKey: "friendId", as: "friendDetails" });
+
+// File.hasOne(Message);
+// Message.belongsTo(File);
+// File.hasOne(GroupMessage);
+// GroupMessage.belongsTo(File);
+
+Message.hasOne(File, {
+  as: "associatedMessage",
+  foreignKey: {
+    allowNull: true,
+  },
+  onDelete: "CASCADE",
+});
+GroupMessage.hasOne(File, {
+  as: "associatedGroupMessage",
+  foreignKey: {
+    allowNull: true,
+  },
+  onDelete: "CASCADE",
+});
 
 io.on("connection", (socket) => {
   console.log("A new user has connected", socket.id);
@@ -93,27 +120,45 @@ io.on("connection", (socket) => {
   });
 
   // Handle sending a message in a 1-to-1 chat
-  socket.on("sendPrivateMessage", async ({ token, receiverId, content }) => {
-    const user = await verifyUserToken(token);
-    if (!user) {
-      console.log("something went wrong");
-      return;
-    }
-    const userId1 = user.id;
-    const userId2 = receiverId;
-    const roomId = [userId1, userId2].sort().join("_");
+  socket.on(
+    "sendPrivateMessage",
+    async ({ token, receiverId, content, file }) => {
+      const user = await verifyUserToken(token);
+      if (!user) {
+        console.log("something went wrong");
+        return;
+      }
+      const userId1 = user.id;
+      const userId2 = receiverId;
+      const roomId = [userId1, userId2].sort().join("_");
 
-    console.log(roomId, content);
-    try {
-      await postChat({ roomId, userId: user.id, receiverId, content });
-      socket
-        .to(roomId)
-        .emit("newPrivateMessage", { message: content, sender: user.id });
-    } catch (error) {
-      console.error("Error sending private message:", error);
-      socket.emit("error", { message: "Failed to send message." });
+      console.log(roomId, content);
+
+      try {
+        const res = await postChat({
+          roomId,
+          userId: user.id,
+          receiverId,
+          content,
+        });
+        let fileuploaded;
+        if (file.data) {
+          fileuploaded = await fileOperaions.fileUpload(file, null, res.id);
+        }
+        socket.to(roomId).emit("newPrivateMessage", {
+          message: content,
+          sender: user.id,
+          file: {
+            name: fileuploaded?.dataValues.fileName,
+            url: fileuploaded?.preSignedUrl,
+          },
+        });
+      } catch (error) {
+        console.error("Error sending private message:", error);
+        socket.emit("error", { message: "Failed to send message." });
+      }
     }
-  });
+  );
 
   // Join a group chat room
   socket.on("joinGroupChat", async ({ groupId, token }) => {
@@ -123,13 +168,37 @@ io.on("connection", (socket) => {
   });
 
   // Handle sending a message in a group chat
-  socket.on("sendGroupMessage", async ({ groupId, token, content }) => {
+  socket.on("sendGroupMessage", async ({ groupId, token, content, file }) => {
     try {
       const user = await verifyUserToken(token);
-      let res = await postGroupMessage({ groupId, userId: user.id, content });
+      if (!user) {
+        console.log("something went wrong");
+        return;
+      }
+      // Check if there's a file to upload
+
+      let res = await postGroupMessage({
+        groupId,
+        userId: user.id,
+        content,
+      });
+      let fileuploaded;
+      if (file.data) {
+        fileuploaded = await fileOperaions.fileUpload(file, res.id, null);
+      }
+
+      if (res.sucess == false) {
+        console.log(res.error);
+        return;
+      }
+
       socket.to(groupId).emit("newGroupMessage", {
         message: content,
         sender: user.username,
+        file: {
+          name: fileuploaded?.dataValues.fileName,
+          url: fileuploaded?.preSignedUrl,
+        },
       });
     } catch (error) {
       console.error("Error sending group message:", error);

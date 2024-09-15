@@ -1,19 +1,19 @@
 const Sequelize = require("sequelize");
 const sequelize = require("../util/db");
 
-const Message = sequelize.define("message", {
-  receiverId: {
+const File = sequelize.define("file", {
+  fileName: {
     type: Sequelize.STRING,
     nullAllowed: false,
   },
-  roomId: {
+  fileUrl: {
     type: Sequelize.STRING,
     nullAllowed: false,
   },
-  message: {
+  key: {
     type: Sequelize.STRING,
-    nullAllowed: true,
+    nullAllowed: false,
   },
 });
 
-module.exports = Message;
+module.exports = File;

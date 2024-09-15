@@ -1,4 +1,4 @@
-const server = `https://s-group-chat-backend.onrender.com`;
+const server = `http://localhost:3000`;
 const socket = io(server);
 
 let userFriends;
@@ -29,13 +29,27 @@ window.addEventListener("DOMContentLoaded", async (e) => {
   document.getElementById("chatting_with").innerText = receiverName;
 });
 
-socket.on("newGroupMessage", ({ message, sender }) => {
+socket.on("newGroupMessage", ({ message, sender, file }) => {
   console.log("new groupmsg received");
-  addNewMessageToUI({ message, sender });
+  if (message.length > 0) {
+    addNewMessageToUI({ message, sender });
+  }
+  console.log(file);
+  if (file.url) {
+    addFileToUI(file);
+  }
 });
 
-socket.on("newPrivateMessage", ({ message, sender }) => {
-  addNewMessageToUI({ message, sender });
+socket.on("newPrivateMessage", ({ message, sender, file }) => {
+  console.log("new groupmsg received");
+  if (message.length > 0) {
+    addNewMessageToUI({ message, sender });
+  }
+  console.log(file);
+  if (file.url) {
+    console.log(file.name);
+    addFileToUI(file);
+  }
 });
 
 document
@@ -46,13 +60,22 @@ document
     const token = localStorage.getItem("token");
     const isReceiverGroup = localStorage.getItem("isReceiverGroup");
     const userId = localStorage.getItem("userId");
-    console.log(typeof isReceiverGroup);
+
+    const fileInput = document.getElementById("input_message_file");
+    const file = fileInput.files[0];
+
     if (isReceiverGroup == "true") {
       console.log("sending Group message");
       socket.emit("sendGroupMessage", {
         groupId: receiverId,
         token,
         content: message,
+        file: {
+          fieldName: "file",
+          name: file?.name,
+          type: file?.type,
+          data: file,
+        },
       });
     } else {
       console.log("sending private message");
@@ -60,9 +83,20 @@ document
         content: message,
         token,
         receiverId,
+        file: {
+          fieldName: "file",
+          name: file?.name,
+          type: file?.type,
+          data: file,
+        },
       });
     }
-    addNewMessageToUI({ message, sender: userId });
+    if (message != null && message != "") {
+      addNewMessageToUI({ message, sender: userId });
+    }
+    if (file) {
+      addFileToUI(file);
+    }
   });
 
 document
@@ -91,7 +125,7 @@ document
       localStorage.setItem("receiverId", receiverId);
       document.getElementById("chatting_with").innerText = e.target.innerText;
       localStorage.setItem("receiverName", e.target.innerText);
-      const msgs = await getPrevChat(token, receiverId, true);
+      const msgs = await getPrevChat(token, receiverId, "true");
       socket.emit("joinGroupChat", { token, groupId: receiverId });
       addPrevChatToUI(msgs);
     }
@@ -239,6 +273,33 @@ document
   });
 
 document
+  .getElementById("leave_group_section_btn")
+  .addEventListener("click", (e) => {
+    e.preventDefault();
+    const leaveGroupSection = document.getElementById("leave_group_section");
+    if (leaveGroupSection.style.display == "none") {
+      leaveGroupSection.style.display = "block";
+      const select_group = document.getElementById(
+        "leave_group_section_select_group"
+      );
+      while (select_group.childNodes > 1) select_group.removeLastChild();
+      userGroups
+        .filter((group) => {
+          return group.groupName != "Global";
+        })
+        .forEach((group) => {
+          const textNode = document.createTextNode(group.groupName);
+          const option = document.createElement("option");
+          option.value = group.id;
+          option.appendChild(textNode);
+          select_group.appendChild(option);
+        });
+    } else {
+      leaveGroupSection.style.display = "none";
+    }
+  });
+
+document
   .getElementById("add_friend_to_group_section_add_btn")
   .addEventListener("click", async (e) => {
     e.preventDefault();
@@ -268,6 +329,16 @@ document
     window.location.reload(true);
   });
 
+document
+  .getElementById("leave_group_section_leave_btn")
+  .addEventListener("click", async (e) => {
+    const select_group = document.getElementById(
+      "leave_group_section_select_group"
+    );
+    await leaveGroup(select_group.value);
+    window.location.reload(true);
+  });
+
 document.getElementById("all_users").addEventListener("click", async (e) => {
   e.preventDefault();
   const userId = e.target.getAttribute("userid");
@@ -281,6 +352,9 @@ document.getElementById("all_users").addEventListener("click", async (e) => {
   } else if (e.target.classList.contains("accept_btn")) {
     acceptFriend(token, userId);
     console.log("accept_btn", userId);
+  }
+  if (e.target.classList.contains("all_users_list_item_btn")) {
+    window.location.reload();
   }
 });
 
@@ -401,6 +475,7 @@ async function getAllUsers(token) {
 
 async function getPrevChat(token, receiverId = 1, isGroup = "true") {
   try {
+    receiverId = parseInt(receiverId);
     if (isGroup == "true") {
       let res = await fetch(`${server}/gc/chat/${receiverId}`, {
         headers: {
@@ -408,6 +483,7 @@ async function getPrevChat(token, receiverId = 1, isGroup = "true") {
         },
       });
       res = await res.json();
+
       return res;
     } else {
       let res = await fetch(`${server}/dm/chat/${receiverId}`, {
@@ -461,6 +537,7 @@ function addAllUsersToUI(allUsers) {
       remove_btn.appendChild(textNode);
       remove_btn.setAttribute("userId", user.id);
       remove_btn.classList.add("remove_btn");
+      remove_btn.classList.add("all_users_list_item_btn");
       li.appendChild(remove_btn);
     } else if (user.status == "pending") {
       const accept_btn = document.createElement("button");
@@ -468,6 +545,7 @@ function addAllUsersToUI(allUsers) {
       accept_btn.appendChild(textNode);
       accept_btn.setAttribute("userId", user.id);
       accept_btn.classList.add("accept_btn");
+      accept_btn.classList.add("all_users_list_item_btn");
       li.appendChild(accept_btn);
     } else if (user.status == "requested") {
       const textNode = document.createTextNode("    requested");
@@ -478,6 +556,7 @@ function addAllUsersToUI(allUsers) {
       add_friend_btn.appendChild(textNode);
       add_friend_btn.setAttribute("userId", user.id);
       add_friend_btn.classList.add("add_friend_btn");
+      add_friend_btn.classList.add("all_users_list_item_btn");
       li.appendChild(add_friend_btn);
     }
     all_users_list.appendChild(li);
@@ -489,11 +568,20 @@ function addPrevChatToUI(chat) {
   while (chatList.childNodes.length > 0) {
     chatList.removeChild(chatList.firstChild);
   }
+  console.log(chat);
   chat.msgs.forEach((msg) => {
-    const textNode = document.createTextNode(msg.message);
-    const li = document.createElement("li");
-    li.appendChild(textNode);
-    chatList.appendChild(li);
+    if (msg.message != null && msg.message != "") {
+      const textNode = document.createTextNode(msg.message);
+      const li = document.createElement("li");
+      li.appendChild(textNode);
+      chatList.appendChild(li);
+    }
+
+    if (msg.associatedGroupMessage) {
+      addFileToUI(msg.associatedGroupMessage);
+    } else if (msg.associatedMessage) {
+      addFileToUI(msg.associatedMessage);
+    }
   });
 }
 
@@ -508,6 +596,23 @@ function addNewMessageToUI({ message, sender }) {
   li.appendChild(textNode);
   chatList.appendChild(li);
 }
+
+function addFileToUI(file) {
+  const chatList = document.getElementById("chat_list");
+  const li = document.createElement("li");
+  li.innerHTML = `<a href=${file.url} download=${file.name}>${file.name}</a>`;
+  li.classList.add("file");
+  if (file.data) li.value = file.data;
+  chatList.appendChild(li);
+}
+
+// document.getElementById("chat_list").addEventListener("click", (e) => {
+//   e.preventDefault();
+//   if (e.target.classList.contains("file")) {
+//     const url = e.target.getAttribute("url");
+//     window.location.href = url;
+//   }
+// });
 
 async function deleteGroup(id) {
   try {
@@ -563,6 +668,18 @@ async function removeUserToGroup(groupId, userId) {
         },
       }
     );
+  } catch (e) {
+    console.log(e);
+  }
+}
+
+async function leaveGroup(groupId) {
+  try {
+    let res = await fetch(`${server}/gc/leave/${groupId}`, {
+      headers: {
+        token: localStorage.getItem("token"),
+      },
+    });
   } catch (e) {
     console.log(e);
   }
